@@ -4,7 +4,7 @@ import { Wallet } from './types';
 export interface ZanoWalletParams {
     authPath: string;
     useLocalStorage?: boolean; // default: true
-    aliasRequired?: boolean; 
+    aliasRequired?: boolean;
     customLocalStorageKey?: string;
     customNonce?: string;
     customServerPath?: string;
@@ -35,6 +35,15 @@ interface WalletCredentials {
     address: string;
 }
 
+type PermissionType =
+    | 'general'
+    | 'balance'
+    | 'history'
+
+interface CompanionPermission {
+    type: PermissionType;
+}
+
 class ZanoWallet {
 
     private DEFAULT_LOCAL_STORAGE_KEY = "wallet";
@@ -42,7 +51,7 @@ class ZanoWallet {
 
     private params: ZanoWalletParams;
     private zanoWallet: ZanoWindowParams;
-    
+
     constructor(params: ZanoWalletParams) {
 
         if (typeof window === 'undefined') {
@@ -57,9 +66,9 @@ class ZanoWallet {
         this.zanoWallet = ((window as unknown) as ZanoWindow).zano;
         this.localStorageKey = params.customLocalStorageKey || this.DEFAULT_LOCAL_STORAGE_KEY;
     }
-    
 
-    private handleError({ message } : { message: string }) {
+
+    private handleError({ message }: { message: string }) {
         if (this.params.onConnectError) {
             this.params.onConnectError(message);
         } else {
@@ -89,8 +98,25 @@ class ZanoWallet {
         this.setWalletCredentials(undefined);
     }
 
-    async connect() {
+    async requestPermissions(permissions: CompanionPermission[]): Promise<void> {
+        const result = await this.zanoWallet.request('REQUEST_ACCESS', {
+            permissions,
+        });
 
+        if (result?.error === 'Unknown method: REQUEST_ACCESS') {
+            console.warn(
+                'Companion does not support permissions system, continuing with legacy flow'
+            );
+
+            return;
+        }
+
+        if (result?.error) {
+            throw new Error(result.error);
+        }
+    }
+
+    async connect() {
         if (this.params.beforeConnect) {
             await this.params.beforeConnect();
         }
@@ -122,7 +148,7 @@ class ZanoWallet {
         console.log('existingWalletValid', existingWalletValid);
         console.log('existingWallet', existingWallet);
         console.log('walletData', walletData);
-        
+
         if (existingWalletValid) {
             nonce = existingWallet.nonce;
             signature = existingWallet.signature;
@@ -131,23 +157,23 @@ class ZanoWallet {
             const generatedNonce = this.params.customNonce || uuidv4();
 
             const signResult = await this.zanoWallet.request(
-                'REQUEST_MESSAGE_SIGN', 
+                'REQUEST_MESSAGE_SIGN',
                 {
                     message: generatedNonce
-                }, 
+                },
                 null
             );
 
             if (!signResult?.data?.result) {
                 return this.handleError({ message: 'Failed to sign message' });
-            }      
+            }
 
             nonce = generatedNonce;
             signature = signResult.data.result.sig;
             publicKey = signResult.data.result.pkey;
         }
 
-        
+
         const serverData = {
             alias: walletData.alias,
             address: walletData.address,
@@ -163,7 +189,7 @@ class ZanoWallet {
 
 
         if (!this.params.disableServerRequest) {
-            const result = await fetch( this.params.customServerPath || "/api/auth", {
+            const result = await fetch(this.params.customServerPath || "/api/auth", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -174,11 +200,11 @@ class ZanoWallet {
                     }
                 )
             })
-            .then(res => res.json())
-            .catch((e) => ({
-                success: false,
-                error: e.message
-            }));  
+                .then(res => res.json())
+                .catch((e) => ({
+                    success: false,
+                    error: e.message
+                }));
 
             if (!result?.success || !result?.data) {
                 return this.handleError({ message: result.error });
@@ -203,7 +229,7 @@ class ZanoWallet {
 
         return true;
     }
-    
+
     async getWallet() {
         return (await this.zanoWallet.request('GET_WALLET_DATA'))?.data as Wallet;
     }
