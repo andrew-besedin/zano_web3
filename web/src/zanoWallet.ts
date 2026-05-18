@@ -98,22 +98,10 @@ class ZanoWallet {
         this.setWalletCredentials(undefined);
     }
 
-    async requestPermissions(permissions: CompanionPermission[]): Promise<void> {
-        const result = await this.zanoWallet.request('REQUEST_ACCESS', {
+    async requestPermissions(permissions: CompanionPermission[]) {
+        return this.zanoWallet.request('REQUEST_ACCESS', {
             permissions,
         });
-
-        if (result?.error === 'Unknown method: REQUEST_ACCESS') {
-            console.warn(
-                'Companion does not support permissions system, continuing with legacy flow'
-            );
-
-            return;
-        }
-
-        if (result?.error) {
-            throw new Error(result.error);
-        }
     }
 
     async connect() {
