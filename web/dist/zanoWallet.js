@@ -45,6 +45,11 @@ class ZanoWallet {
     cleanWalletCredentials() {
         this.setWalletCredentials(undefined);
     }
+    async requestPermissions(permissions) {
+        return this.zanoWallet.request('REQUEST_ACCESS', {
+            permissions,
+        });
+    }
     async connect() {
         if (this.params.beforeConnect) {
             await this.params.beforeConnect();

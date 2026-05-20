@@ -19,6 +19,10 @@ interface WalletCredentials {
     publicKey: string;
     address: string;
 }
+type PermissionType = 'general' | 'balance' | 'history';
+interface CompanionPermission {
+    type: PermissionType;
+}
 declare class ZanoWallet {
     private DEFAULT_LOCAL_STORAGE_KEY;
     private localStorageKey;
@@ -29,6 +33,7 @@ declare class ZanoWallet {
     getSavedWalletCredentials(): WalletCredentials | undefined;
     setWalletCredentials(credentials: WalletCredentials | undefined): void;
     cleanWalletCredentials(): void;
+    requestPermissions(permissions: CompanionPermission[]): Promise<any>;
     connect(): Promise<true | void>;
     getWallet(): Promise<Wallet>;
     getAddressByAlias(alias: string): Promise<string | undefined>;
