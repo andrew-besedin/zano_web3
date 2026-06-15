@@ -46,9 +46,16 @@ class ZanoWallet {
         this.setWalletCredentials(undefined);
     }
     async requestPermissions(permissions) {
-        return this.zanoWallet.request('REQUEST_ACCESS', {
-            permissions,
-        });
+        try {
+            return await this.zanoWallet.request('REQUEST_ACCESS', {
+                permissions,
+            });
+        }
+        catch (error) {
+            return {
+                error: error instanceof Error ? error.message : String(error),
+            };
+        }
     }
     async connect() {
         if (this.params.beforeConnect) {
