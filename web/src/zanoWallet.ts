@@ -99,9 +99,15 @@ class ZanoWallet {
     }
 
     async requestPermissions(permissions: CompanionPermission[]) {
-        return this.zanoWallet.request('REQUEST_ACCESS', {
-            permissions,
-        });
+        try {
+            return await this.zanoWallet.request('REQUEST_ACCESS', {
+                permissions,
+            });
+        } catch (error) {
+            return {
+                error: error instanceof Error ? error.message : String(error),
+            };
+        }
     }
 
     async connect() {
