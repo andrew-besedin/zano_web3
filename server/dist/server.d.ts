@@ -32,6 +32,13 @@ declare class ServerWallet {
     getAliasByAddress(address: string): Promise<any>;
     getBalances(): Promise<BalanceInfo[]>;
     validateWallet(authData: AuthData): Promise<boolean>;
+    validateSecureMessageSignature({ originalMessage, signedMessage, signature, address, pkeyFromSignature, }: {
+        originalMessage: string;
+        signedMessage: string;
+        signature: string;
+        address: string;
+        pkeyFromSignature: string;
+    }): Promise<boolean>;
     getTxs(params: GetTxsParams): Promise<TxInfo>;
     getAliasDetails(alias: string): Promise<AliasDetails>;
 }

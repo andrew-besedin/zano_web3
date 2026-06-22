@@ -12,7 +12,9 @@ import {
 
 import { ZANO_ASSET_ID, ZanoError } from "./utils";
 import { APIAsset, APIBalance } from "./types";
+
 import forge from "node-forge";
+import { getPkeyFromAddress, parseSecureMessageForSigning } from "../../shared/dist";
 
 interface ConstructorParams {
   walletUrl: string;
@@ -343,6 +345,62 @@ class ServerWallet {
     }
 
     return valid;
+  }
+
+  async validateSecureMessageSignature({
+    originalMessage,
+    signedMessage,
+    signature,
+    address,
+    pkeyFromSignature,
+  }: {
+    originalMessage: string;
+    signedMessage: string;
+    signature: string;
+    address: string;
+    pkeyFromSignature: string;
+  }): Promise<boolean> {
+    if (originalMessage !== signedMessage) {
+      return false;
+    }
+
+    const pkey = getPkeyFromAddress({ address });
+
+    const isPkeyMatching = pkey !== null && pkey === pkeyFromSignature;
+
+    if (!isPkeyMatching) {
+      return false;
+    }
+
+    const isSignatureValid = await this.validateWallet({
+      message: originalMessage,
+      signature,
+      address,
+      pkey,
+    });
+
+    if (!isSignatureValid) {
+      return false;
+    }
+
+    const parsedMessageResult = parseSecureMessageForSigning({ message: originalMessage });
+    const parsingData = parsedMessageResult.success ? parsedMessageResult.parsingResult : null;
+
+    const parsedSuccessfully = parsedMessageResult.success && parsingData !== null && parsingData.isSecureMessage && parsingData.isValidSecureMessage;
+
+    if (!parsedSuccessfully) {
+      return false;
+    }
+
+    const { expirationTime } = parsingData.values;
+
+    const isExpired = expirationTime.getTime() < Date.now();
+
+    if (isExpired) {
+      return false;
+    }
+
+    return true;
   }
 
   async getTxs(params: GetTxsParams) {

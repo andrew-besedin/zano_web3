@@ -2,6 +2,7 @@ import axios from "axios";
 import Big from "big.js";
 import { ZANO_ASSET_ID, ZanoError } from "./utils";
 import forge from "node-forge";
+import { getPkeyFromAddress, parseSecureMessageForSigning } from "../../shared/dist";
 class ServerWallet {
     walletUrl;
     daemonUrl;
@@ -250,6 +251,37 @@ class ServerWallet {
             }
         }
         return valid;
+    }
+    async validateSecureMessageSignature({ originalMessage, signedMessage, signature, address, pkeyFromSignature, }) {
+        if (originalMessage !== signedMessage) {
+            return false;
+        }
+        const pkey = getPkeyFromAddress({ address });
+        const isPkeyMatching = pkey !== null && pkey === pkeyFromSignature;
+        if (!isPkeyMatching) {
+            return false;
+        }
+        const isSignatureValid = await this.validateWallet({
+            message: originalMessage,
+            signature,
+            address,
+            pkey,
+        });
+        if (!isSignatureValid) {
+            return false;
+        }
+        const parsedMessageResult = parseSecureMessageForSigning({ message: originalMessage });
+        const parsingData = parsedMessageResult.success ? parsedMessageResult.parsingResult : null;
+        const parsedSuccessfully = parsedMessageResult.success && parsingData !== null && parsingData.isSecureMessage && parsingData.isValidSecureMessage;
+        if (!parsedSuccessfully) {
+            return false;
+        }
+        const { expirationTime } = parsingData.values;
+        const isExpired = expirationTime.getTime() < Date.now();
+        if (isExpired) {
+            return false;
+        }
+        return true;
     }
     async getTxs(params) {
         const txs = await this.fetchWallet("get_recent_txs_and_info2", {
