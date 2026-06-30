@@ -138,10 +138,6 @@ class ZanoWallet {
 
         const existingWalletValid = existingWallet && existingWallet.address === walletData.address;
 
-        console.log('existingWalletValid', existingWalletValid);
-        console.log('existingWallet', existingWallet);
-        console.log('walletData', walletData);
-
         if (existingWalletValid) {
             nonce = existingWallet.nonce;
             signature = existingWallet.signature;
