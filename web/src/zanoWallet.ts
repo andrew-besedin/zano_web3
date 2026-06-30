@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid';
 import { Wallet } from './types';
 
 export interface ZanoWalletParams {
@@ -6,7 +5,7 @@ export interface ZanoWalletParams {
     useLocalStorage?: boolean; // default: true
     aliasRequired?: boolean;
     customLocalStorageKey?: string;
-    customNonce?: string;
+    customNonce: string;
     customServerPath?: string;
     disableServerRequest?: boolean;
 
@@ -148,7 +147,7 @@ class ZanoWallet {
             signature = existingWallet.signature;
             publicKey = existingWallet.publicKey;
         } else {
-            const generatedNonce = this.params.customNonce || uuidv4();
+            const generatedNonce = this.params.customNonce;
 
             const signResult = await this.zanoWallet.request(
                 'REQUEST_MESSAGE_SIGN',
